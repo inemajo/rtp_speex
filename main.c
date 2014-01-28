@@ -144,6 +144,8 @@ loop()
     if (!(config.action & OPT_TYPE_NOREC)) { /* if norec is disable */
       svc_rec_send(rtp, &buff, &frame, encoder);
     }
+    else
+      usleep(16000); /* if no rec must sleep for waiting 16ms  */
 
     if (!(config.action & OPT_TYPE_NOPLAY)) { /* if noplay is disable */
       svc_recv_play(rtp, &buff, &frame, decoder);
