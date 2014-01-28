@@ -104,7 +104,7 @@ svc_ortp_bind(char *ip, unsigned short port)
   /* Block rtp_session_recv_with_ts/rtp_session_send_with_ts
      until timestamp timeout.
    */
-  rtp_session_set_blocking_mode(rtp->session, FALSE);
+  rtp_session_set_blocking_mode(rtp->session, TRUE);
 
   fprintf(stderr, "binding to %s port %d\n", ip, port);
   rtp_session_set_local_addr(rtp->session, ip, port); /* Set bind ip:port */
@@ -151,7 +151,7 @@ svc_ortp_connect(char *ip, unsigned short port)
   rtp->timestamp = 0;
 
   rtp_session_set_scheduling_mode(rtp->session, 1);
-  rtp_session_set_blocking_mode(rtp->session, FALSE);
+  rtp_session_set_blocking_mode(rtp->session, TRUE);
 
   rtp_session_set_connected_mode(rtp->session, TRUE);
 
@@ -167,9 +167,11 @@ int
 svc_ortp_recv(svc_rtp_t *rtp, buff_t *buff, int *have_more)
 {
   int err;
-    
+  int in_have_more;
+
   err = rtp_session_recv_with_ts(rtp->session, buff->s, buff->size, 
-				 rtp->timestamp, have_more);
+				 rtp->timestamp,
+				 have_more ? have_more : &in_have_more);
 
   /* printf("%d = rtp_session_recv_with_ts(%p, %p, %d, %d)\n", err, (void *)rtp->session, buff->s, (int)buff->size, rtp->timestamp); */
   return (err);

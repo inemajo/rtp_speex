@@ -63,11 +63,7 @@ svc_rec_send(svc_rtp_t *rtp, buff_t *buff, spx_frame_t *frame, spx_coder_t *code
     kill(getpid(), SIGTERM);
   
   count = svc_speex_encodeframe(coder, frame, buff);
-  if (count) { /* return 0 if nothing to transmet  */
-    if (svc_ortp_send(rtp, buff->s, count) != -1)
-      rtp->timestamp += 160;
-  }
-  return (0);
+  return (svc_ortp_send(rtp, buff->s, count));
 }
 
 int
@@ -78,7 +74,6 @@ svc_recv_play(svc_rtp_t *rtp, buff_t *buff, spx_frame_t *frame, spx_coder_t *cod
 
   have_more = 0;
   count = svc_ortp_recv(rtp, buff, &have_more);
-  rtp->timestamp += 160;
   /* if have_more ... */
   if (count > 0) {
     if (!svc_speex_decodeframe(coder, (char *)buff->s, count, frame)) {
@@ -129,8 +124,13 @@ loop()
 
   svc_ortp_init(); /* initialize ortp lib */
 
-  if ((config.action & OPT_TYPE_BIN)) /* if action == bind */
+  if ((config.action & OPT_TYPE_BIN)) /* if action == bind */ {
     rtp = svc_ortp_bind(config.ip, config.port);
+    while (svc_ortp_recv(rtp, &buff, NULL) <= 0) {
+      rtp->timestamp += 160;
+      fprintf(stderr, "Wait client...\n");
+    }
+  }
   else if ((config.action & OPT_TYPE_CON)) /* else if action == connect */
     rtp = svc_ortp_connect(config.ip, config.port);
   else
@@ -142,14 +142,18 @@ loop()
   while (SVC_RUNNING()) { /* SVC_RUNNING is just a define for (run == TRUE) */
 
     if (!(config.action & OPT_TYPE_NOREC)) { /* if norec is disable */
-      svc_rec_send(rtp, &buff, &frame, encoder);
+      if (svc_rec_send(rtp, &buff, &frame, encoder) != -1)
+	rtp->timestamp += 0;
     }
-    else
-      usleep(16000); /* if no rec must sleep for waiting 16ms  */
+    else {
+      rtp->timestamp += 0;
+    }
+      rtp->timestamp += 160;
 
     if (!(config.action & OPT_TYPE_NOPLAY)) { /* if noplay is disable */
       svc_recv_play(rtp, &buff, &frame, decoder);
     }
+
   }
 
   free(frame.s);
